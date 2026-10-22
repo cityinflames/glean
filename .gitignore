@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+output/
+data/models/
+dist/
+build/
+*.wav
+*.mp3
+*.mp4
+*.mkv
+*.webm
+*.mov
+*.spec.bak

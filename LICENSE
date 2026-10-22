@@ -1,0 +1,6 @@
+Glean is offered for use as-is, for listening, study, and clipping talks
+on your own computer.
+
+The King James Bible text bundled with this program is public domain.
+Speech recognition uses Faster Whisper. FFmpeg is used to read audio.
+Those tools keep their own licenses.

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glean</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #141210;
+    --panel: #1c1916;
+    --line: #3a342c;
+    --text: #f4efe6;
+    --muted: #b3a89a;
+    --gold: #e6d3b1;
+    --accent: #efe7da;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.5 Georgia, "Iowan Old Style", Palatino, serif;
+  }
+  button, select, input { font: inherit; color: inherit; }
+  .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+  aside {
+    border-right: 1px solid var(--line);
+    padding: 28px 22px;
+  }
+  .brand { font-size: 22px; letter-spacing: 0.04em; }
+  .brand span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; }
+  html, body { height: 100%; }
+  .library { margin-top: 36px; }
+  .library h2 { margin: 0 0 12px; color: var(--muted); font-size: 12px; letter-spacing: 0.16em; font-weight: normal; }
+  .library button {
+    display: block; width: 100%; text-align: left;
+    background: transparent; border: 0; border-top: 1px solid var(--line);
+    padding: 12px 0; cursor: pointer;
+  }
+  .library button small { display: block; color: var(--muted); font-size: 13px; }
+  main { padding: 42px 48px 80px; max-width: 920px; }
+  h1 { font-weight: normal; font-size: 46px; line-height: 1.05; margin: 0 0 12px; }
+  .lede { color: var(--muted); max-width: 62ch; }
+  .drop {
+    margin-top: 28px;
+    border: 1px dashed var(--line);
+    border-radius: 18px;
+    padding: 28px;
+    background: var(--panel);
+  }
+  .drop.hot { border-color: var(--gold); }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; align-items: end; }
+  label { display: block; color: var(--muted); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6px; }
+  select, .file-button {
+    background: #26221c;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 10px 16px;
+  }
+  .file-button { cursor: pointer; display: inline-block; }
+  input[type=file] { display: none; }
+  .go {
+    background: var(--accent);
+    color: #1a1612;
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+  }
+  .go:disabled { opacity: 0.45; cursor: wait; }
+  .status { margin-top: 16px; color: var(--gold); }
+  .result { margin-top: 36px; }
+  .meta { color: var(--muted); }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 8px; }
+  .actions a, .copy, .views button {
+    color: var(--gold);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .views { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 22px; }
+  .views button.active { background: var(--accent); color: #1a1612; border-color: var(--accent); }
+  .panel { display: none; }
+  .panel.on { display: block; }
+  .punch { border-top: 1px solid var(--line); padding: 28px 0; }
+  .punch h3 { font-weight: normal; font-size: 34px; line-height: 1.15; margin: 0 0 8px; }
+  article { border-top: 1px solid var(--line); padding: 22px 0; }
+  article h2 { font-weight: normal; font-size: 28px; margin: 0 0 8px; }
+  .clip { padding: 14px 0; }
+  .when { color: var(--gold); font-variant-numeric: tabular-nums; }
+  blockquote { margin: 8px 0; font-size: 20px; }
+  .note { color: var(--muted); font-size: 15px; }
+  .verse { background: #221e19; border-radius: 12px; padding: 12px 14px; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--muted); }
+  .line { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 6px 0; }
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); }
+    main { padding: 28px 20px 60px; }
+    h1 { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside>
+    <div class="brand">Glean<span>Desktop</span></div>
+    <div class="library">
+      <h2>Library</h2>
+      <div id="library">Nothing gleaned yet.</div>
+    </div>
+  </aside>
+  <main>
+    <h1>Keep the grain. Leave the rest.</h1>
+    <p class="lede">Drop a sermon video. Glean transcribes it here, keeps the time on each line, and quotes the speaker. Scripture is looked up only when the talk cites it.</p>
+    <form class="drop" id="drop">
+      <div class="row">
+        <div>
+          <label for="file">Video or transcript</label>
+          <label class="file-button" for="file">Choose file</label>
+          <input id="file" type="file" accept="video/*,audio/*,.srt,.vtt,.txt,.md">
+        </div>
+        <div>
+          <label for="accuracy">Transcription</label>
+          <select id="accuracy">
+            <option value="high" selected>High accuracy, slower</option>
+            <option value="standard">Faster, lighter model</option>
+          </select>
+        </div>
+        <button class="go" id="go" type="submit" disabled>Glean this</button>
+      </div>
+      <p class="note" id="chosen">Video, or a TurboScribe .txt / .srt you already have. The file stays on this PC.</p>
+      <p class="status" id="status" hidden></p>
+    </form>
+    <div class="result" id="result"></div>
+  </main>
+</div>
+<script>
+const fileInput = document.querySelector("#file");
+const go = document.querySelector("#go");
+const status = document.querySelector("#status");
+const chosen = document.querySelector("#chosen");
+const result = document.querySelector("#result");
+const drop = document.querySelector("#drop");
+let file = null;
+
+function clock(seconds) {
+  if (seconds == null) return "";
+  seconds = Math.max(0, Math.round(seconds));
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+fileInput.addEventListener("change", () => {
+  file = fileInput.files[0] || null;
+  chosen.textContent = file ? file.name : "Video, or a TurboScribe .txt / .srt you already have. The file stays on this PC.";
+  go.disabled = !file;
+});
+
+["dragover", "dragenter"].forEach(name => drop.addEventListener(name, event => {
+  event.preventDefault();
+  drop.classList.add("hot");
+}));
+["dragleave", "drop"].forEach(name => drop.addEventListener(name, () => drop.classList.remove("hot")));
+drop.addEventListener("drop", event => {
+  event.preventDefault();
+  const dropped = event.dataTransfer.files[0];
+  if (!dropped) return;
+  file = dropped;
+  chosen.textContent = file.name;
+  go.disabled = false;
+});
+
+drop.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!file) return;
+  go.disabled = true;
+  status.hidden = false;
+  status.textContent = "Starting.";
+  result.innerHTML = "";
+  const response = await fetch("/api/jobs", {
+    method: "POST",
+    headers: { "X-Filename": file.name, "X-Accuracy": document.querySelector("#accuracy").value },
+    body: file
+  });
+  const payload = await response.json();
+  await poll(payload.id);
+});
+
+async function poll(id) {
+  for (;;) {
+    const response = await fetch("/api/jobs/" + id);
+    const payload = await response.json();
+    status.textContent = payload.message || "";
+    if (payload.state === "done") {
+      render(payload.result);
+      go.disabled = !file;
+      loadLibrary();
+      return;
+    }
+    if (payload.state === "error") {
+      status.textContent = payload.message;
+      go.disabled = !file;
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
+
+function render(item) {
+  status.hidden = true;
+  const root = document.createElement("div");
+  const heading = document.createElement("h2");
+  heading.textContent = item.title;
+  root.appendChild(heading);
+  const meta = document.createElement("p");
+  meta.className = "meta";
+  meta.textContent = item.hasTimes
+    ? `${clock(item.duration)} spoken · ${item.wordCount} words`
+    : `${item.wordCount} words · no timestamps in this file`;
+  root.appendChild(meta);
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  actions.append(saveButton("Save notes", item, "markdown"), saveButton("Save captions", item, "srt"));
+  root.appendChild(actions);
+
+  const punches = item.punches || [];
+  const views = document.createElement("div");
+  views.className = "views";
+  const panels = {};
+  const buttons = {};
+  function show(name) {
+    Object.entries(panels).forEach(([key, node]) => node.classList.toggle("on", key === name));
+    Object.entries(buttons).forEach(([key, node]) => node.classList.toggle("active", key === name));
+  }
+  function addView(name, label) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.addEventListener("click", () => show(name));
+    views.appendChild(button);
+    buttons[name] = button;
+    const panel = document.createElement("div");
+    panel.className = "panel";
+    panels[name] = panel;
+    return panel;
+  }
+  const punchPanel = addView("punches", "Punches");
+  const clipPanel = addView("clips", "Clips");
+  const scripturePanel = addView("scripture", "Scripture");
+  const wordsPanel = addView("words", "In their words");
+  root.appendChild(views);
+
+  punchPanel.appendChild(section("Punches", punches.length ? "The hardest lines he threw, with the times still on them." : "No punch landed clearly enough in this transcript."));
+  punches.forEach((punch, index) => {
+    const block = document.createElement("div");
+    block.className = "punch";
+    if (index >= 2) {
+      block.hidden = true;
+      block.dataset.extra = "true";
+    }
+    const title = document.createElement("h3");
+    title.textContent = punch.hook;
+    const when = document.createElement("div");
+    when.className = "when";
+    when.textContent = punch.start == null ? "" : `${clock(punch.start)} – ${clock(punch.end)}`;
+    const quote = document.createElement("blockquote");
+    quote.textContent = punch.text;
+    const note = document.createElement("p");
+    note.className = "note";
+    note.textContent = punch.note;
+    const copy = document.createElement("button");
+    copy.className = "copy";
+    copy.type = "button";
+    copy.textContent = "Copy punch";
+    copy.addEventListener("click", () => navigator.clipboard.writeText(`${punch.hook}\n${clock(punch.start)} – ${clock(punch.end)}\n\n${punch.text}`));
+    block.append(title, when, quote, note, copy);
+    punchPanel.appendChild(block);
+  });
+  if (punches.length > 2) {
+    const more = document.createElement("button");
+    more.className = "copy";
+    more.type = "button";
+    more.textContent = "One more punch";
+    more.addEventListener("click", () => {
+      punchPanel.querySelectorAll("[data-extra]").forEach(node => { node.hidden = false; });
+      more.remove();
+    });
+    punchPanel.appendChild(more);
+  }
+
+  clipPanel.appendChild(section("Clips", item.clips.length ? "" : "No timestamped lines to cut."));
+  item.clips.forEach(clip => {
+    const block = document.createElement("div");
+    block.className = "clip";
+    const when = document.createElement("div");
+    when.className = "when";
+    when.textContent = `${clock(clip.start)} – ${clock(clip.end)}`;
+    const quote = document.createElement("blockquote");
+    quote.textContent = clip.text;
+    const copy = document.createElement("button");
+    copy.className = "copy";
+    copy.type = "button";
+    copy.textContent = "Copy times";
+    copy.addEventListener("click", () => navigator.clipboard.writeText(`${clock(clip.start)} – ${clock(clip.end)}\n${clip.text}`));
+    block.append(when, quote, copy);
+    if (clip.wide) {
+      const note = document.createElement("p");
+      note.className = "note";
+      note.textContent = "This timestamp covers a longer stretch. The line sits inside it.";
+      block.appendChild(note);
+    }
+    clipPanel.appendChild(block);
+  });
+
+  scripturePanel.appendChild(section("Scripture spoken", item.scripture.length ? "King James text is shown beside what was said. It is not a paraphrase of the sermon." : "No Bible reference was detected in this transcript."));
+  item.scripture.forEach(cite => {
+    const block = document.createElement("article");
+    const title = document.createElement("h2");
+    title.textContent = cite.ref || "Verse number only";
+    block.appendChild(title);
+    if (cite.start != null) {
+      const when = document.createElement("div");
+      when.className = "when";
+      when.textContent = clock(cite.start);
+      block.appendChild(when);
+    }
+    if (cite.verseText) {
+      const verse = document.createElement("p");
+      verse.className = "verse";
+      verse.textContent = cite.verseText;
+      block.appendChild(verse);
+    }
+    if (cite.note) {
+      const note = document.createElement("p");
+      note.className = "note";
+      note.textContent = cite.note;
+      block.appendChild(note);
+    }
+    const heard = document.createElement("blockquote");
+    heard.textContent = cite.heard;
+    block.appendChild(heard);
+    if (cite.ref) {
+      const study = document.createElement("p");
+      study.textContent = "Read the verses around this citation, then set them next to the sentence above.";
+      block.appendChild(study);
+    }
+    scripturePanel.appendChild(block);
+  });
+
+  wordsPanel.appendChild(section("In their words", "Each stretch keeps two sentences the speaker actually said."));
+  item.sections.forEach(part => {
+    const block = document.createElement("article");
+    if (part.start != null) {
+      const when = document.createElement("div");
+      when.className = "when";
+      when.textContent = `${clock(part.start)} – ${clock(part.end)}`;
+      block.appendChild(when);
+    }
+    part.quotes.forEach(quote => {
+      const line = document.createElement("blockquote");
+      line.textContent = quote.text;
+      block.appendChild(line);
+    });
+    wordsPanel.appendChild(block);
+  });
+
+  root.append(punchPanel, clipPanel, scripturePanel, wordsPanel);
+  show(punches.length ? "punches" : "clips");
+
+  if (item.transcript) {
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Full transcript";
+    details.appendChild(summary);
+    item.transcript.forEach(line => {
+      const row = document.createElement("div");
+      row.className = "line";
+      const when = document.createElement("div");
+      when.className = "when";
+      when.textContent = line.start == null ? "" : clock(line.start);
+      const text = document.createElement("div");
+      text.textContent = line.text;
+      row.append(when, text);
+      details.appendChild(row);
+    });
+    root.appendChild(details);
+  }
+  result.replaceChildren(root);
+}
+
+function saveButton(label, item, kind) {
+  const button = document.createElement("button");
+  button.className = "copy";
+  button.type = "button";
+  button.textContent = label;
+  button.addEventListener("click", async () => {
+    if (window.pywebview && window.pywebview.api) {
+      await window.pywebview.api.save_export(item.id, kind);
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = `/api/jobs/${item.id}/${kind === "srt" ? "srt" : "markdown"}`;
+    link.download = item.title + (kind === "srt" ? ".srt" : ".md");
+    link.click();
+  });
+  return button;
+}
+
+function section(title, note) {
+  const block = document.createElement("article");
+  const heading = document.createElement("h2");
+  heading.textContent = title;
+  block.appendChild(heading);
+  if (note) {
+    const p = document.createElement("p");
+    p.className = "note";
+    p.textContent = note;
+    block.appendChild(p);
+  }
+  return block;
+}
+
+async function loadLibrary() {
+  const response = await fetch("/api/library");
+  const payload = await response.json();
+  const host = document.querySelector("#library");
+  host.replaceChildren();
+  if (!payload.items.length) {
+    host.textContent = "Nothing gleaned yet.";
+    return;
+  }
+  payload.items.forEach(item => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = item.title;
+    const small = document.createElement("small");
+    small.textContent = item.duration ? clock(item.duration) : `${item.wordCount} words`;
+    button.appendChild(small);
+    button.addEventListener("click", () => poll(item.id));
+    host.appendChild(button);
+  });
+}
+
+loadLibrary();
+</script>
+</body>
+</html>
